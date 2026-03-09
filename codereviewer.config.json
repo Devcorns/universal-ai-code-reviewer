@@ -1,0 +1,6 @@
+{
+  "maxFunctionLength": 50,
+  "maxCyclomaticComplexity": 10,
+  "forbiddenFunctions": ["eval", "exec"],
+  "customRules": []
+}

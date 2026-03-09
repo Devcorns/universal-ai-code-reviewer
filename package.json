@@ -1,0 +1,171 @@
+{
+  "name": "universal-ai-code-reviewer",
+  "displayName": "Universal AI Code Reviewer",
+  "description": "Production-grade automated code review extension that analyzes, reviews, and detects issues across 24+ programming languages using static analysis, pattern detection, heuristic analysis, and AI-assisted code understanding.",
+  "version": "1.0.0",
+  "publisher": "itprakhar",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "code review",
+    "static analysis",
+    "security",
+    "linter",
+    "code quality"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "universalReviewer.reviewCurrentFile",
+        "title": "Run Code Review (Current File)",
+        "category": "Code Reviewer"
+      },
+      {
+        "command": "universalReviewer.reviewWorkspace",
+        "title": "Run Code Review (Workspace)",
+        "category": "Code Reviewer"
+      },
+      {
+        "command": "universalReviewer.reviewFolder",
+        "title": "Run Code Review (Selected Folder)",
+        "category": "Code Reviewer"
+      },
+      {
+        "command": "universalReviewer.reviewGitChanged",
+        "title": "Review Git Changed Files",
+        "category": "Code Reviewer"
+      },
+      {
+        "command": "universalReviewer.reviewGitStaged",
+        "title": "Review Git Staged Files",
+        "category": "Code Reviewer"
+      },
+      {
+        "command": "universalReviewer.generateReport",
+        "title": "Generate Review Report",
+        "category": "Code Reviewer"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "universalReviewer.reviewCurrentFile",
+          "when": "resourceScheme == file && !explorerResourceIsFolder",
+          "group": "codereview@1"
+        },
+        {
+          "command": "universalReviewer.reviewFolder",
+          "when": "explorerResourceIsFolder",
+          "group": "codereview@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "universalReviewer.reviewCurrentFile",
+          "group": "codereview@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Universal AI Code Reviewer",
+      "properties": {
+        "universalReviewer.maxFunctionLength": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum number of lines per function before flagging."
+        },
+        "universalReviewer.maxCyclomaticComplexity": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum cyclomatic complexity allowed."
+        },
+        "universalReviewer.forbiddenFunctions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "eval",
+            "exec"
+          ],
+          "description": "List of forbidden function names to flag."
+        },
+        "universalReviewer.ignorePaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "node_modules",
+            "dist",
+            "build",
+            ".git",
+            "vendor",
+            "__pycache__",
+            ".venv"
+          ],
+          "description": "Paths to ignore during review."
+        },
+        "universalReviewer.reportFormat": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "json",
+              "text"
+            ]
+          },
+          "default": [
+            "markdown",
+            "json",
+            "text"
+          ],
+          "description": "Report formats to generate."
+        },
+        "universalReviewer.severityThreshold": {
+          "type": "string",
+          "enum": [
+            "Low",
+            "Medium",
+            "High",
+            "Critical"
+          ],
+          "default": "Low",
+          "description": "Minimum severity level to report."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "webpack --mode production",
+    "compile-dev": "webpack --mode none",
+    "watch": "webpack --watch --mode none",
+    "lint": "eslint src",
+    "test": "echo \"No tests configured yet\""
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.109.0",
+    "@vscode/vsce": "^3.7.1",
+    "eslint": "^9.39.3",
+    "mocha": "^11.7.5",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1",
+    "webpack": "^5.105.3",
+    "webpack-cli": "^6.0.1"
+  }
+}

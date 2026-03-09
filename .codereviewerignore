@@ -1,0 +1,52 @@
+# Code Reviewer Ignore File
+# Lines starting with # are comments
+# Patterns are matched against file paths
+
+# Dependencies
+node_modules
+vendor
+.venv
+__pycache__
+
+# Build outputs
+dist
+build
+out
+.next
+.nuxt
+target
+bin/Release
+bin/Debug
+
+# IDE and tooling
+.vscode
+.idea
+.vs
+*.min.js
+*.min.css
+*.bundle.js
+*.map
+
+# Generated files
+*.generated.*
+*.auto.*
+*.d.ts
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Test fixtures / snapshots
+__snapshots__
+*.snap
+fixtures
+
+# Media
+*.png
+*.jpg
+*.gif
+*.svg
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.eot

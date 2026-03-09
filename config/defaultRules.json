@@ -1,0 +1,24 @@
+{
+  "maxFunctionLength": 50,
+  "maxCyclomaticComplexity": 10,
+  "forbiddenFunctions": ["eval", "exec", "document.write"],
+  "customRules": [
+    {
+      "id": "no-any-type",
+      "pattern": ":\\s*any\\b",
+      "severity": "Medium",
+      "message": "Avoid using 'any' type — use a specific type instead",
+      "explanation": "The 'any' type defeats TypeScript's type checking and can hide bugs.",
+      "suggestedFix": "Replace 'any' with a proper type or 'unknown' if the type is truly dynamic.",
+      "languages": ["typescript"]
+    },
+    {
+      "id": "no-magic-strings",
+      "pattern": "===?\\s*['\"][a-z]{5,}['\"]",
+      "severity": "Low",
+      "message": "Magic string comparison — consider using a constant",
+      "explanation": "Comparing against inline string literals is fragile and hard to refactor.",
+      "suggestedFix": "Extract the string into a named constant."
+    }
+  ]
+}
