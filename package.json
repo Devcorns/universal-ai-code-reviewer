@@ -2,8 +2,13 @@
   "name": "universal-ai-code-reviewer",
   "displayName": "Universal AI Code Reviewer",
   "description": "Production-grade automated code review extension that analyzes, reviews, and detects issues across 24+ programming languages using static analysis, pattern detection, heuristic analysis, and AI-assisted code understanding.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "publisher": "itprakhar",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itprakhar/universal-ai-code-reviewer.git"
+  },
   "engines": {
     "vscode": "^1.109.0"
   },

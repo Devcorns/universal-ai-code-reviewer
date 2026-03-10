@@ -16,4 +16,6 @@ esbuild.js
 **/*.map
 **/*.ts
 **/.vscode-test.*
-CHANGELOG.md
+scripts/**
+*.vsix
+codereviewer.config.json

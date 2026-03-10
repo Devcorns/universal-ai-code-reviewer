@@ -40,16 +40,30 @@ Write-Host "Opening GitHub Create Repo page in your browser..." -ForegroundColor
 Start-Process $createRepoUrl
 
 Write-Host "Please create the repository with these settings:" -ForegroundColor Yellow
-Write-Host "  Owner: itprakhar" -ForegroundColor Yellow
-Write-Host "  Repository name: universal-ai-code-reviewer" -ForegroundColor Yellow
-Write-Host "  Visibility: Public" -ForegroundColor Yellow
+Write-Host "  Owner:            itprakhar" -ForegroundColor Yellow
+Write-Host "  Repository name:  universal-ai-code-reviewer" -ForegroundColor Yellow
+Write-Host "  Visibility:       Public" -ForegroundColor Yellow
 Write-Host "  Do NOT initialize with README/.gitignore/license" -ForegroundColor Yellow
+
+# Package the VSIX before pushing
+Write-Host "`nPackaging VSIX..." -ForegroundColor Cyan
+$vsixName = 'universal-ai-code-reviewer-2.0.0.vsix'
+if (Get-Command 'npx' -ErrorAction SilentlyContinue) {
+    npx vsce package --out $vsixName
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "VSIX created: $vsixName" -ForegroundColor Green
+    } else {
+        Write-Host "WARNING: VSIX packaging failed — continuing with git push." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "WARNING: npx not found — skipping VSIX packaging." -ForegroundColor Yellow
+}
 
 Read-Host -Prompt "Press Enter after you finish creating the repository on GitHub (or Ctrl+C to cancel)"
 
 # Suggest remote URLs (SSH preferred)
-$sshUrl = 'git@github.com:devcorns/universal-ai-code-reviewer.git'
-$httpsUrl = 'https://github.com/devcorns/universal-ai-code-reviewer.git'
+$sshUrl = 'git@github.com:itprakhar/universal-ai-code-reviewer.git'
+$httpsUrl = 'https://github.com/itprakhar/universal-ai-code-reviewer.git'
 
 Write-Host "Suggested remote URLs:" -ForegroundColor Cyan
 Write-Host "  SSH:   $sshUrl" -ForegroundColor DarkCyan

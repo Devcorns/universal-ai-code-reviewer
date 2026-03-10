@@ -1,1 +1,33 @@
-node_modules
+# Compiled output
+dist/
+out/
+
+# Dependencies
+node_modules/
+
+# Build artifacts & packaged extensions
+*.vsix
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# VS Code test runner
+.vscode-test/
+.vscode-test-web/
+
+# Environment files
+.env
+.env.local
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Generated reports (written by the extension itself)
+code-review-report.md
+code-review-report.json
+code-review-report.txt
+
+# Logs
+*.log
+npm-debug.log*

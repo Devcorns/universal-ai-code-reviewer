@@ -10,6 +10,7 @@ import { AstAnalyzer } from './astAnalyzer.js';
 import { RuleEngine } from './ruleEngine.js';
 import { AiReviewEngine } from './aiReviewEngine.js';
 import { meetsThreshold } from './severityClassifier.js';
+import { FalsePositiveFilter, isExcludedPath } from './falsePositiveFilter.js';
 
 export class ReviewerEngine {
     private securityScanner: SecurityScanner;
@@ -20,6 +21,7 @@ export class ReviewerEngine {
     private ruleEngine: RuleEngine;
     private aiReviewEngine: AiReviewEngine;
     private config: ReviewerConfig;
+    private fpFilter: FalsePositiveFilter;
 
     // Cache: file path -> result (invalidated when content changes)
     private cache = new Map<string, { hash: number; result: ReviewResult }>();
@@ -33,17 +35,49 @@ export class ReviewerEngine {
         this.astAnalyzer = new AstAnalyzer();
         this.ruleEngine = new RuleEngine(config);
         this.aiReviewEngine = new AiReviewEngine();
+        this.fpFilter = new FalsePositiveFilter({
+            confidenceThreshold: config.confidenceThreshold,
+            whitelistedFunctions: config.whitelistedFunctions,
+            whitelistedPatterns: config.whitelistedPatterns,
+            enableFrameworks: config.enableFrameworks,
+            minDuplicateLines: config.minDuplicateLines
+        });
+
+        // Wire duplicate line minimum and framework detector into AI engine
+        this.aiReviewEngine.setMinDuplicateLines(config.minDuplicateLines);
+        this.aiReviewEngine.setFrameworkDetector(this.fpFilter.getFrameworkDetector());
     }
 
     /** Update configuration at runtime */
     updateConfig(config: ReviewerConfig): void {
         this.config = config;
         this.ruleEngine.updateRules(config.customRules);
+        this.fpFilter.updateConfig({
+            confidenceThreshold: config.confidenceThreshold,
+            whitelistedFunctions: config.whitelistedFunctions,
+            whitelistedPatterns: config.whitelistedPatterns,
+            enableFrameworks: config.enableFrameworks,
+            minDuplicateLines: config.minDuplicateLines
+        });
+        this.aiReviewEngine.setMinDuplicateLines(config.minDuplicateLines);
+        this.aiReviewEngine.setFrameworkDetector(this.fpFilter.getFrameworkDetector());
     }
 
     /** Review a single file */
     reviewFile(filePath: string, content: string): ReviewResult {
         const start = Date.now();
+
+        // Hard exclusion: never analyze files in excluded directories
+        if (isExcludedPath(filePath)) {
+            return {
+                file: filePath,
+                language: 'excluded',
+                issues: [],
+                scannedAt: new Date(),
+                duration: Date.now() - start
+            };
+        }
+
         const langInfo = detectLanguage(filePath);
 
         if (!langInfo) {
@@ -68,8 +102,11 @@ export class ReviewerEngine {
         // Filter by severity threshold
         const filtered = issues.filter(i => meetsThreshold(i.severity, this.config.severityThreshold));
 
+        // Apply false-positive filter (confidence, framework, whitelist)
+        const fpFiltered = this.fpFilter.filterIssues(filtered, content, langInfo.id);
+
         // Deduplicate issues on the same line with the same category
-        const deduped = this.deduplicateIssues(filtered);
+        const deduped = this.deduplicateIssues(fpFiltered);
 
         // Sort by severity (critical first), then by line number
         deduped.sort((a, b) => {
@@ -104,6 +141,9 @@ export class ReviewerEngine {
     private runAllAnalyzers(filePath: string, content: string, langInfo: LanguageInfo): ReviewIssue[] {
         const allIssues: ReviewIssue[] = [];
         const { id: language, family } = langInfo;
+
+        // Auto-detect frameworks from content
+        this.fpFilter.getFrameworkDetector().detectFromContent(content);
 
         allIssues.push(...this.securityScanner.analyze(filePath, content, language));
         allIssues.push(...this.performanceAnalyzer.analyze(filePath, content, language));

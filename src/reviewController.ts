@@ -8,6 +8,7 @@ import { ReportGenerator } from './reportGenerator.js';
 import { GitIntegration } from './gitIntegration.js';
 import { ReviewIssue, ReviewResult, ReviewerConfig, IssueSeverity, IssueCategory, CustomRule } from './issueTypes.js';
 import { isSupportedFile, getSupportedExtensions } from './languageDetector.js';
+import { isExcludedPath } from './falsePositiveFilter.js';
 
 const DIAGNOSTIC_SOURCE = 'Universal AI Code Reviewer';
 const IGNORE_FILE = '.codereviewerignore';
@@ -433,6 +434,12 @@ export class ReviewController implements vscode.CodeActionProvider, vscode.Dispo
         const workspaceRoot = this.getWorkspaceRoot();
 
         let customRules: CustomRule[] = [];
+        let whitelistedFunctions: string[] = [];
+        let whitelistedPatterns: string[] = [];
+        let enableFrameworks: string[] = [];
+        let confidenceThreshold = 0.6;
+        let minDuplicateLines = 5;
+
         if (workspaceRoot) {
             const configPath = path.join(workspaceRoot, CONFIG_FILE);
             if (fs.existsSync(configPath)) {
@@ -440,6 +447,15 @@ export class ReviewController implements vscode.CodeActionProvider, vscode.Dispo
                     const raw = fs.readFileSync(configPath, 'utf-8');
                     const parsed = JSON.parse(raw);
                     customRules = parsed.customRules || [];
+                    whitelistedFunctions = parsed.whitelistedFunctions || [];
+                    whitelistedPatterns = parsed.whitelistedPatterns || [];
+                    enableFrameworks = parsed.enableFrameworks || [];
+                    if (typeof parsed.confidenceThreshold === 'number') {
+                        confidenceThreshold = parsed.confidenceThreshold;
+                    }
+                    if (typeof parsed.minDuplicateLines === 'number') {
+                        minDuplicateLines = parsed.minDuplicateLines;
+                    }
                 } catch (err) {
                     this.outputChannel.appendLine(`Error loading ${CONFIG_FILE}: ${err}`);
                 }
@@ -452,7 +468,12 @@ export class ReviewController implements vscode.CodeActionProvider, vscode.Dispo
             forbiddenFunctions: vsConfig.get('forbiddenFunctions', ['eval', 'exec']),
             ignorePaths: vsConfig.get('ignorePaths', ['node_modules', 'dist', 'build', '.git']),
             customRules,
-            severityThreshold: vsConfig.get('severityThreshold', 'Low') as IssueSeverity
+            severityThreshold: vsConfig.get('severityThreshold', 'Low') as IssueSeverity,
+            confidenceThreshold,
+            whitelistedFunctions,
+            whitelistedPatterns,
+            enableFrameworks,
+            minDuplicateLines
         };
     }
 
@@ -475,6 +496,11 @@ export class ReviewController implements vscode.CodeActionProvider, vscode.Dispo
     }
 
     private isIgnored(filePath: string): boolean {
+        // Always exclude node_modules, dist, build, .git
+        if (isExcludedPath(filePath)) {
+            return true;
+        }
+
         const config = this.loadConfig();
         const normalizedPath = filePath.replace(/\\/g, '/');
 

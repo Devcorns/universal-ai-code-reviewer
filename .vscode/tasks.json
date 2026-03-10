@@ -24,6 +24,22 @@
 				"$ts-webpack-watch",
 				"$tslint-webpack-watch"
 			]
+		},
+		{
+			"type": "shell",
+			"label": "Package VSIX 2.0.0",
+			"command": "npx vsce package --out universal-ai-code-reviewer-2.0.0.vsix",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"type": "shell",
+			"label": "Git Init Commit and Push",
+			"command": "git init && git checkout -b main 2>$null; git add --all && git commit -m 'feat: v2.0.0 - intelligent false positive reduction with framework awareness, AST-based duplicate detection, and confidence scoring' && git remote remove origin 2>$null; git remote add origin https://github.com/itprakhar/universal-ai-code-reviewer.git && git push -u origin main",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

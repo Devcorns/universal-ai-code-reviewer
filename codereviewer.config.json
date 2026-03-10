@@ -2,5 +2,25 @@
   "maxFunctionLength": 50,
   "maxCyclomaticComplexity": 10,
   "forbiddenFunctions": ["eval", "exec"],
-  "customRules": []
+  "customRules": [],
+  "confidenceThreshold": 0.6,
+  "minDuplicateLines": 5,
+  "enableFrameworks": ["angular", "react", "node"],
+  "whitelistedFunctions": [
+    "loadChildren",
+    "loadComponent",
+    "canActivate",
+    "canDeactivate",
+    "forwardRef",
+    "useEffect",
+    "useCallback",
+    "useMemo"
+  ],
+  "whitelistedPatterns": [
+    "@Component\\s*\\(",
+    "@Injectable\\s*\\(",
+    "@NgModule\\s*\\(",
+    "@Controller\\s*\\(",
+    "providedIn\\s*:\\s*['\"]root['\"]"
+  ]
 }

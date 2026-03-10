@@ -106,4 +106,14 @@ export interface ReviewerConfig {
     customRules: CustomRule[];
     ignorePaths: string[];
     severityThreshold: IssueSeverity;
+    /** Minimum confidence (0-1) to report an issue. Default: 0.6 */
+    confidenceThreshold: number;
+    /** Functions / identifiers to never flag */
+    whitelistedFunctions: string[];
+    /** Regex pattern strings to never flag */
+    whitelistedPatterns: string[];
+    /** Frameworks to force-enable (e.g. ["angular", "react", "node"]) */
+    enableFrameworks: string[];
+    /** Minimum number of lines for duplicate code detection */
+    minDuplicateLines: number;
 }

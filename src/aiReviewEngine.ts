@@ -1,14 +1,29 @@
 /** AI-assisted contextual code review engine using heuristic analysis */
 
 import { ReviewIssue, IssueSeverity, IssueCategory } from './issueTypes.js';
+import { FalsePositiveFilter } from './falsePositiveFilter.js';
+import { FrameworkDetector } from './frameworkPatterns.js';
 
 export class AiReviewEngine {
+    private minDuplicateLines = 5;
+    private frameworkDetector: FrameworkDetector | undefined;
+
+    /** Set the minimum number of lines for duplicate detection */
+    setMinDuplicateLines(n: number): void {
+        this.minDuplicateLines = Math.max(2, n);
+    }
+
+    /** Provide a framework detector for suppression during analysis */
+    setFrameworkDetector(detector: FrameworkDetector): void {
+        this.frameworkDetector = detector;
+    }
+
     analyze(filePath: string, content: string, language: string): ReviewIssue[] {
         const issues: ReviewIssue[] = [];
         const lines = content.split('\n');
 
         this.analyzeErrorHandlingPatterns(filePath, content, lines, language, issues);
-        this.analyzeCodeDuplication(filePath, lines, issues);
+        this.analyzeCodeDuplication(filePath, lines, language, issues);
         this.analyzeEdgeCaseHandling(filePath, lines, language, issues);
         this.analyzeConcurrencyPatterns(filePath, lines, language, issues);
         this.analyzeResourceManagement(filePath, content, lines, language, issues);
@@ -80,37 +95,86 @@ export class AiReviewEngine {
         }
     }
 
-    /** Detect repeated code blocks that could be refactored */
-    private analyzeCodeDuplication(filePath: string, lines: string[], issues: ReviewIssue[]): void {
-        const BLOCK_SIZE = 4;
+    /** Detect repeated code blocks using AST-like structural comparison
+     *  instead of raw text matching. Normalizes identifiers so that
+     *  structurally identical blocks with different names are caught. */
+    private analyzeCodeDuplication(filePath: string, lines: string[], language: string, issues: ReviewIssue[]): void {
+        const BLOCK_SIZE = this.minDuplicateLines;
         const MIN_LINE_LENGTH = 20;
         const seen = new Map<string, number>();
 
         for (let i = 0; i <= lines.length - BLOCK_SIZE; i++) {
-            const block = lines.slice(i, i + BLOCK_SIZE)
+            const rawBlock = lines.slice(i, i + BLOCK_SIZE);
+            const meaningful = rawBlock
                 .map(l => l.trim())
-                .filter(l => l.length >= MIN_LINE_LENGTH && !l.startsWith('//') && !l.startsWith('#') && !l.startsWith('*') && l !== '{' && l !== '}');
+                .filter(l =>
+                    l.length >= MIN_LINE_LENGTH &&
+                    !l.startsWith('//') && !l.startsWith('#') &&
+                    !l.startsWith('*') && !l.startsWith('/*') &&
+                    !l.startsWith('import ') && !l.startsWith('from ') &&
+                    l !== '{' && l !== '}' && l !== ');' && l !== '});'
+                );
 
-            if (block.length < BLOCK_SIZE - 1) { continue; }
+            if (meaningful.length < BLOCK_SIZE - 1) { continue; }
 
-            const key = block.join('\n');
-            const prev = seen.get(key);
+            // Framework-aware suppression: skip blocks matching framework patterns
+            if (this.frameworkDetector) {
+                if (this.frameworkDetector.shouldSuppressBlock(meaningful, 'ai/code-duplication', language)) {
+                    continue;
+                }
+            }
+
+            // Normalize to structural signature: replace identifiers with placeholders
+            const structuralKey = meaningful
+                .map(l => this.normalizeToStructure(l))
+                .join('\n');
+
+            const prev = seen.get(structuralKey);
             if (prev !== undefined) {
                 issues.push({
                     file: filePath,
                     line: i + 1,
+                    endLine: i + BLOCK_SIZE,
                     severity: IssueSeverity.Low,
                     category: IssueCategory.BadPractice,
-                    message: `Duplicate code block (also at line ${prev + 1})`,
+                    message: `Duplicate code block (structurally similar to line ${prev + 1})`,
                     explanation: 'Duplicated code increases maintenance burden and bug risk — changes must be replicated in all copies.',
                     suggestedFix: 'Extract the duplicated logic into a reusable function or method.',
-                    confidence: 0.6,
+                    confidence: 0.65,
                     ruleId: 'ai/code-duplication'
                 });
             } else {
-                seen.set(key, i);
+                seen.set(structuralKey, i);
             }
         }
+    }
+
+    /** Normalize a line of code to its structural form:
+     *  - Replace string literals with $STR
+     *  - Replace number literals with $NUM
+     *  - Replace identifiers with $ID (preserving keywords & operators)
+     *  This enables structural comparison regardless of naming. */
+    private normalizeToStructure(line: string): string {
+        let normalized = line;
+        // Replace string literals
+        normalized = normalized.replace(/(['"`])(?:(?!\1).)*\1/g, '$STR');
+        // Replace number literals
+        normalized = normalized.replace(/\b\d+(?:\.\d+)?\b/g, '$NUM');
+        // Preserve language keywords
+        const keywords = /\b(?:if|else|for|while|do|switch|case|default|break|continue|return|function|class|const|let|var|import|export|from|async|await|try|catch|finally|throw|new|typeof|instanceof|void|delete|in|of|true|false|null|undefined|this|super|yield|static|get|set|public|private|protected|readonly|interface|type|enum|extends|implements|abstract|declare|namespace|def|elif|except|pass|raise|with|as|lambda|global|nonlocal|assert|None|True|False|self|print|struct|impl|fn|pub|mod|use|crate|match|loop|mut|ref|move|trait|where|dyn|unsafe|extern)\b/g;
+        // Replace identifiers but not keywords
+        const parts = normalized.split(keywords);
+        const keywordMatches = normalized.match(keywords) || [];
+        let result = '';
+        for (let i = 0; i < parts.length; i++) {
+            // Replace identifiers in non-keyword parts
+            result += parts[i].replace(/\b[a-zA-Z_]\w*\b/g, '$ID');
+            if (i < keywordMatches.length) {
+                result += keywordMatches[i];
+            }
+        }
+        // Collapse whitespace
+        return result.replace(/\s+/g, ' ').trim();
     }
 
     /** Detect missing edge case handling */
